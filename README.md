@@ -1,52 +1,120 @@
-## 1. Project Abstract & Theoretical Overview
+#!/usr/bin/env python3
+"""
+Allostatic Friction and Hysteretic Autonomic Dynamics Framework
+Core Simulation Architecture - Unified Standalone Engine
+Author: Dr. Marc B. Nock, DDS
+"""
 
-The **Allostatic-Friction-and-Hysteretic-Autonomic-Dynamics** framework provides a computational, mathematical, and simulation-driven toolkit designed to model the non-linear path dependency (**hysteresis loops**) and active metabolic energy dissipation (**allostatic friction**) within the human nervous system. 
+import numpy as np
 
-Conventional health metrics focus primarily on static biomonitoring, evaluating isolated component integrity (e.g., resting heart rate, blood panels, or hormone assays). This repository shifts the paradigm upstream, treating the brainstem's autonomic core—specifically the **Parabrachial Nucleus (PBN)**, the **Nucleus Tractus Solitarius (NTS)**, and the **Reticular Activating System (RAS)**—as a non-linear, path-dependent dynamic control network.
+class AllostaticFriction:
+    """
+    Computes real-time metabolic friction and trigeminal afferent noise flux
+    based on three-dimensional craniofacial architecture parameters.
+    """
+    def __init__(self, airway_volume, jaw_recession, base_muscle_force=12.5):
+        self.airway_volume = max(0.1, airway_volume)  # Avoid division by zero
+        self.jaw_recession = max(0.0, jaw_recession)
+        self.base_muscle_force = base_muscle_force
+        
+    def compute_coefficient(self, alpha=0.15, beta=0.04):
+        """
+        Calculates Caf using the exponential airway constriction ratio
+        and the required isometric propping force vectors.
+        """
+        airway_compromise_ratio = self.jaw_recession / self.airway_volume
+        isometric_load = self.base_muscle_force * (1.0 + (self.jaw_recession * 0.5))
+        
+        c_af = alpha * np.exp(airway_compromise_ratio) + beta * isometric_load
+        return float(c_af)
 
-### The Problem Space
-When an individual exhibits a compromised craniofacial or upper-airway architecture (such as a retrognathic mandible, narrow inter-molar width, or collapsed maxilla), the respiratory pathway becomes a mechanical bottleneck. To prevent airway collapse during standard behavior and sleep states, the brainstem executes automatic, life-saving fallback protocols. It commands continuous, high-frequency isometric contractions of the accessory muscles of the neck, jaw, and cervical spine to prop the airway open. 
+    def get_afferent_noise_flux(self, timestep):
+        """
+        Simulates the Trigeminal Afferent Deluge (high-frequency static signals).
+        """
+        base_noise = self.jaw_recession * 1.8
+        stochastic_component = np.sin(timestep / 10.0) * 0.2 + np.random.normal(0, 0.05)
+        return max(0.0, base_noise + stochastic_component)
 
-This mechanical workaround siphons a massive daily budget of metabolic energy (ATP) and floods the central nervous system with chronic spatial noise via Cranial Nerve V (The Trigeminal Afferent Deluge). This continuous background processing tax is defined here as **Allostatic Friction**. 
 
-Furthermore, this repository models the **Hysteresis Layer** of autonomic biology. In highly hysteretic dynamic systems, the path required to return to a baseline state of rest is entirely distinct from the path taken to enter a state of crisis. When an external psychological or lifestyle stressor drops to zero (e.g., a "stress sabbatical"), the internal system remains locked in a high-vigilance sympathetic attractor because the uncorrected hardware error continues to act as an anchor, preventing the baseline from resetting.
+class HysteresisStateEngine:
+    """
+    Models path-dependent state transitions within the brainstem's autonomic routers.
+    Implements a discrete non-linear memory trace to dictate vigilance parameters.
+    """
+    def __init__(self, initial_state=0.1, memory_decay=0.95):
+        self.state = initial_state
+        self.memory_decay = memory_decay
+        self.memory_kernel = []
 
----
+    def update_state(self, env_input, friction_tax, static_flux, lambda_scale=0.08):
+        """
+        Advances the state equation factoring in external load, allostatic friction,
+        and historical path memory.
+        """
+        # Retain history
+        self.memory_kernel.append(self.state)
+        if len(self.memory_kernel) > 100:
+            self.memory_kernel.pop(0)
+            
+        # Calculate historical convolution trace
+        history_trace = sum([val * np.exp(-lambda_scale * (len(self.memory_kernel) - idx)) 
+                             for idx, val in enumerate(self.memory_kernel)])
+        
+        # Calculate net directional driving force
+        driving_force = env_input + (friction_tax * 0.4) + (static_flux * 0.15)
+        
+        # Differential approximation loop with a non-linear sigmoid ceiling
+        dx = 0.12 * (driving_force - (0.5 * self.state)) + (0.02 * history_trace)
+        
+        # Advance and clip state to hard biological boundaries [0, 1]
+        self.state = np.clip(self.state + dx, 0.0, 1.0)
+        return float(self.state)
 
-## 2. Mathematical Foundations
 
-The framework tracks the evolution of an autonomic state vector, $x(t)$, restricted to the domain $x \\in [0, 1]$, where:
-* $x \\to 0$ represents complete parasympathetic access, high signal fidelity, and optimal systemic restoration.
-* $x \\to 1$ represents maximum sympathetic drive, elevated allostatic load, and systemic bandwidth exhaustion.
-
-### 2.1 The Governing Non-Linear State Equation
-The state vector's progression over time is determined by a coupled non-linear differential system factoring in the potential energy landscape of the structure, trigeminal sensory flux, and a convolution historical memory kernel:
-
-$$\\frac{dx}{dt} = -\\nabla V(x, \\theta) + \\mu_{af}(\theta)\\Phi_{trigeminal}(t) + \\int_{t_0}^{t} \\Gamma(x, \\tau) e^{-\\lambda(t-\\tau)} d\\tau$$
-
-Where:
-* $V(x, \\theta)$ is the structural potential energy well, parameterized by the multi-dimensional craniofacial misalignment vector $\theta$.
-* $\mu_{af}(\theta)$ represents the dimensionless **Allostatic Friction Coefficient**.
-* $\Phi_{trigeminal}(t)$ represents the instantaneous informational flux of the Trigeminal Afferent Deluge, measured in bits/second or high-frequency neural spike arrays.
-* $\\int_{t_0}^{t} \\Gamma(x, \\tau) e^{-\\lambda(t-\\tau)} d\\tau$ is the memory integral representing the historical path dependency, scaled by the memory decay constant $\lambda$.
-
-### 2.2 The Allostatic Friction Coefficient ($Ref: C_{af}$)
-The metabolic overhead required to preserve physiological homeostatic equilibrium scales exponentially as a function of upper airway volume constriction ($\Omega_{airway}$) and skeletal jaw retrusion vectors:
-
-$$\\mu_{af}(\theta) = \\alpha \\cdot \\exp\\left( \\frac{\\theta_{recession}}{\\Omega_{airway}} \\right) + \\beta \\cdot \\sum_{i=1}^{n} \\|\\vec{F}_{isometric, i}\\|$$
-
-Where:
-* $\\alpha$ and $\\beta$ are biological scaling constants derived from systemic control loops.
-* $\\Omega_{airway}$ represents the minimum three-dimensional cross-sectional area of the pharyngeal airway.
-* $\\vec{F}_{isometric, i}$ represents the isometric force vector of the $i$-th accessory muscle unit engaged in stabilizing the craniomandibular frame against gravity.
-
-### 2.3 The Hysteresis Loop Transform
-The state engine implements a modified Duhem model for path-dependent hysteresis, tracking the system's autonomic behavior under varying external workloads:
-
-$$\\frac{dx}{dE} = f(x, E) \\cdot \\text{sgn}(\\dot{E}) + g(x, E)$$
-
-Where $E$ represents the net external environmental input, demonstrating that the forward path ($E$ increasing) and the relaxation path ($E$ decreasing) do not overlap when internal structural noise creates a permanent operational floor.
-
----
-
-## 3. Codebase Architecture & Directory Structure
+def execute_simulation_run():
+    print("[SYSTEM INITIATION] Launching Allostatic Friction & Hysteretic Loop Engine...\n")
+    print("=" * 80)
+    print("SIMULATION MODEL: Software Stress Sabbatical vs. Hardware Structural Anchor")
+    print("=" * 80)
+    
+    # Define a structurally compromised patient profile (Narrow airway, high jaw recession)
+    compromised_hardware = {
+        'airway_volume': 14.2,      # mm^2 minimum cross section
+        'jaw_recession': 8.5        # mm skeletal retrognathia
+    }
+    
+    total_timesteps = 200
+    midpoint = total_timesteps // 2
+    
+    # Generate Timeline: Phase 1 (Acute External Stress) -> Phase 2 (The Sabbatical Protocol)
+    timeline_external_stress = np.zeros(total_timesteps)
+    timeline_external_stress[:midpoint] = 0.80   # Intense lifestyle/workload input
+    timeline_external_stress[midpoint:] = 0.00   # Complete behavioral unburdening (Sabbatical)
+    
+    # Initialize Core Engines
+    friction_layer = AllostaticFriction(
+        airway_volume=compromised_hardware['airway_volume'],
+        jaw_recession=compromised_hardware['jaw_recession']
+    )
+    state_engine = HysteresisStateEngine(initial_state=0.25, memory_decay=0.92)
+    
+    # Run loop
+    for t in range(total_timesteps):
+        c_af = friction_layer.compute_coefficient()
+        static_flux = friction_layer.get_afferent_noise_flux(t)
+        
+        current_vigilance = state_engine.update_state(
+            env_input=timeline_external_stress[t],
+            friction_tax=c_af,
+            static_flux=static_flux
+        )
+        
+        # Track energetic allocation distributions
+        atp_overhead = (c_af * 0.60) + (current_vigilance * 0.40)
+        cognitive_bandwidth = max(0.0, 100.0 - (atp_overhead * 85.0))
+        
+        # Output telemetry at specific milestones
+        if t in [10, midpoint - 10, midpoint + 10, total_timesteps - 1]:
+            phase_string = "PHASE 1: HIGH LIFESTYLE LOAD" if t < midpoint else "PHASE 2: ENVIRONMENTAL SABBATICAL"
+            print(f"\n[{phase_string} | TIMESTEP {t:03d}]")
