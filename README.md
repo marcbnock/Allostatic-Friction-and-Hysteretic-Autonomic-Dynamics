@@ -1,12 +1,3 @@
-markdown_content = """# Allostatic Friction and Hysteretic Autonomic Dynamics Framework
-  
-**Core Framework:** Human Signal Architecture Framework  
-**Repository Name:** `Allostatic-Friction-and-Hysteretic-Autonomic-Dynamics`  
-**Visibility:** Public  
-**License:** MIT License  
-
----
-
 ## 1. Project Abstract & Theoretical Overview
 
 The **Allostatic-Friction-and-Hysteretic-Autonomic-Dynamics** framework provides a computational, mathematical, and simulation-driven toolkit designed to model the non-linear path dependency (**hysteresis loops**) and active metabolic energy dissipation (**allostatic friction**) within the human nervous system. 
